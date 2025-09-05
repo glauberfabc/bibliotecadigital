@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Library, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,14 +25,12 @@ const Logo = () => (
 );
 
 export default function Header() {
-  const router = useRouter();
   const supabase = createClient();
   const { user, profile, loading } = useUser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    window.location.href = '/login';
   };
 
   const isAdmin = profile?.role === 'admin';
