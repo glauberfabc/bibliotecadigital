@@ -1,61 +1,92 @@
--- Drop tables with CASCADE to remove dependent objects like policies
-DROP TABLE IF EXISTS public.contents CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
-
--- Drop trigger and function if they exist
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP FUNCTION IF EXISTS public.handle_new_user;
-
--- Create profiles table
+-- 
+-- profiles table
+-- 
 CREATE TABLE public.profiles (
     id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
     email character varying,
     role text DEFAULT 'user'::text,
-    PRIMARY KEY (id)
+    CONSTRAINT profiles_pkey PRIMARY KEY (id),
+    CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['user'::text, 'admin'::text])))
 );
-ALTER TABLE public.profiles CLUSTER ON profiles_pkey;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Create contents table
+--
+-- contents table
+--
 CREATE TABLE public.contents (
-    id uuid NOT NULL DEFAULT gen_random_uuid(),
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     title text NOT NULL,
     theme text NOT NULL,
     type text NOT NULL,
     cover_url text NOT NULL,
-    download_url text NOT NULL,
-    PRIMARY KEY (id)
+    download_url text NOT NULL
 );
+
 ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
 
--- Function to create a new profile when a user signs up
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $function$
-BEGIN
-  INSERT INTO public.profiles (id, email, role)
-  VALUES (new.id, new.email, 'user');
-  RETURN new;
-END;
-$function$;
+--
+-- handle_new_user function
+--
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, role)
+  values (new.id, new.email, 'user');
+  return new;
+end;
+$$;
 
--- Trigger to call the function on new user creation
-CREATE TRIGGER on_auth_user_created
-AFTER INSERT ON auth.users
-FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+--
+-- new user trigger
+--
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 
--- Policies for profiles table
-CREATE POLICY "Allow users to read their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Allow users to update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Admins can manage all profiles" ON public.profiles FOR ALL USING (( SELECT role FROM profiles WHERE id = auth.uid() ) = 'admin');
 
--- Policies for contents table
-CREATE POLICY "Allow authenticated users to read content" ON public.contents FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow admin users to manage all content" ON public.contents FOR ALL USING (( SELECT role FROM profiles WHERE id = auth.uid() ) = 'admin');
+--
+-- Storage bucket and policies
+--
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('covers', 'covers', true);
 
--- Policies for storage (book covers)
-CREATE POLICY "Allow authenticated users to view covers" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'covers');
-CREATE POLICY "Allow admin users to manage covers" ON storage.objects FOR ALL USING (bucket_id = 'covers' AND ( SELECT role FROM profiles WHERE id = auth.uid() ) = 'admin');
+CREATE POLICY "Allow public read access to covers" ON storage.objects
+FOR SELECT TO anon, authenticated
+USING (bucket_id = 'covers');
+
+CREATE POLICY "Allow authenticated users to upload covers" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'covers');
+
+CREATE POLICY "Allow users to update their own covers" ON storage.objects
+FOR UPDATE TO authenticated
+USING (auth.uid() = owner);
+
+CREATE POLICY "Allow users to delete their own covers" ON storage.objects
+FOR DELETE TO authenticated
+USING (auth.uid() = owner);
+
+
+--
+-- RLS POLICIES
+--
+
+-- Policies for profiles
+CREATE POLICY "Users can view their own profile" ON public.profiles
+FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" ON public.profiles
+FOR UPDATE USING (auth.uid() = id);
+
+-- Policies for contents
+CREATE POLICY "Authenticated users can view content" ON public.contents
+FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Admin users can manage all content" ON public.contents
+FOR ALL USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin')
+WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
