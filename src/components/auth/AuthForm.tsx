@@ -47,35 +47,16 @@ export default function AuthForm({ type }: AuthFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     if (type === 'login') {
-      const { data: loginData, error } = await supabase.auth.signInWithPassword(values);
+      const { error } = await supabase.auth.signInWithPassword(values);
       if (error) {
         toast({
           title: 'Erro no Login',
           description: error.message,
           variant: 'destructive',
         });
-      } else if (loginData.user) {
-        // Explicitly fetch the user's profile to check their role
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', loginData.user.id)
-          .single();
-
-        if (profileError) {
-           toast({
-            title: 'Erro ao buscar perfil',
-            description: 'Não foi possível verificar sua função. Por favor, tente novamente.',
-            variant: 'destructive',
-          });
-        } else {
-            // Hard redirect to ensure middleware and server components get the new session
-            if (profile?.role === 'admin') {
-                window.location.href = '/admin';
-            } else {
-                window.location.href = '/';
-            }
-        }
+      } else {
+        // Hard redirect to allow middleware to handle role-based routing
+        window.location.href = '/';
       }
     } else {
       const { error } = await supabase.auth.signUp(values);

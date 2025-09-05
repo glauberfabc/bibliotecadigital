@@ -2,9 +2,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
-  // This approach of creating a new response and supabase client is for the middleware.
-  // The updateSession function from supabase/middleware is not used here to allow for
-  // more granular control over the response lifecycle and redirection logic.
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -17,26 +14,36 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = user
-    ? await supabase.from('profiles').select('role').eq('id', user.id).single()
-    : { data: null };
-  
-  const isAdmin = profile?.role === 'admin';
-  
-  if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup'))) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup');
 
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/signup')) {
+  // If user is not logged in, redirect to login page if they are not on an auth page.
+  if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url));
+  // If user is logged in, handle routing
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    // If logged-in user is on an auth page, redirect to admin or home.
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/', request.url));
     }
-    if (!isAdmin) {
+
+    // If a non-admin tries to access /admin, redirect to home.
+    if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin) {
       return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    // If an admin is on the home page, redirect them to /admin.
+    if (request.nextUrl.pathname === '/' && isAdmin) {
+      return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
 
