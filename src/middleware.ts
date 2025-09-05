@@ -1,10 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
-import { createServerClient } from './lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
-  // A função updateSession atualiza o cookie de sessão do usuário
-  // e o retorna na resposta. É crucial executá-la primeiro.
   const { response, supabase } = await updateSession(request);
 
   const {
@@ -13,14 +10,19 @@ export async function middleware(request: NextRequest) {
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup');
 
-  // Se o usuário não estiver logado e tentar acessar uma página protegida,
-  // redireciona para a página de login.
+  // If the user is not logged in and tries to access a protected page,
+  // redirect to the login page.
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Se o usuário estiver logado, lida com os redirecionamentos.
+  // If the user is logged in, handle redirects.
   if (user) {
+    // If a logged-in user is on an auth page, redirect to home.
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -29,23 +31,13 @@ export async function middleware(request: NextRequest) {
 
     const isAdmin = profile?.role === 'admin';
 
-    // Se um usuário logado estiver em uma página de autenticação, redireciona para a página apropriada.
-    if (isAuthPage) {
-      return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/', request.url));
-    }
-
-    // Se um não-admin tentar acessar /admin, redireciona para a home.
+    // If a non-admin tries to access /admin, redirect to home.
     if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin) {
       return NextResponse.redirect(new URL('/', request.url));
     }
-
-    // Se um admin estiver na home, redireciona para /admin.
-    if (request.nextUrl.pathname === '/' && isAdmin) {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
   }
 
-  // Retorna a resposta com o cookie de sessão atualizado.
+  // Return the response with the updated session cookie.
   return response;
 }
 
