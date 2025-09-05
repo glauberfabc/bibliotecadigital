@@ -1,95 +1,85 @@
--- 1. Create profiles table
-create table public.profiles (
-  id uuid not null references auth.users on delete cascade,
-  email text,
-  role text default 'user',
-  primary key (id)
+--
+-- Tabela de Perfis de Usuário
+-- Armazena informações públicas sobre os usuários.
+--
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR(255),
+  role TEXT DEFAULT 'user' NOT NULL
 );
-alter table public.profiles enable row level security;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 2. Create contents table
-create table public.contents (
-    id uuid default gen_random_uuid() primary key,
-    title text not null,
-    theme text not null,
-    cover_url text not null,
-    type text not null check (type in ('book', 'audiobook')),
-    download_url text not null,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+-- Políticas de Segurança para a Tabela de Perfis
+CREATE POLICY "Os usuários podem ver todos os perfis" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Os usuários podem inserir seu próprio perfil" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Os usuários podem atualizar seu próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+--
+-- Função e Gatilho para Sincronização de Usuários
+-- Cria um perfil para um novo usuário automaticamente.
+--
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES (new.id, new.email, 'user');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+--
+-- Tabela de Conteúdos
+-- Armazena os livros e audiolivros.
+--
+CREATE TABLE public.contents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  theme TEXT NOT NULL,
+  cover_url TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('book', 'audiobook')),
+  download_url TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
-alter table public.contents enable row level security;
+ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
 
--- 3. Set up trigger for new users
-create function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email);
-  return new;
-end;
-$$;
+-- Políticas de Segurança para a Tabela de Conteúdos
+CREATE POLICY "Permitir acesso de leitura a todos" ON public.contents FOR SELECT USING (true);
+CREATE POLICY "Permitir inserção para administradores" ON public.contents FOR INSERT WITH CHECK (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
+CREATE POLICY "Permitir atualização para administradores" ON public.contents FOR UPDATE USING (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
+CREATE POLICY "Permitir exclusão para administradores" ON public.contents FOR DELETE USING (
+  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
+--
+-- Configuração do Supabase Storage para Capas
+--
+-- Cria o bucket 'covers' se ele não existir
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('covers', 'covers', true)
+ON CONFLICT (id) DO NOTHING;
 
--- 4. Set up RLS policies
-create policy "Public profiles are viewable by everyone."
-on public.profiles for select
-using ( true );
+-- Políticas de Segurança para o Bucket 'covers'
+CREATE POLICY "Permitir que usuários autenticados vejam todas as capas" ON storage.objects FOR SELECT USING (bucket_id = 'covers');
 
-create policy "Users can insert their own profile."
-on public.profiles for insert
-with check ( auth.uid() = id );
+CREATE POLICY "Permitir que administradores autenticados façam upload de capas" ON storage.objects FOR INSERT WITH CHECK (
+    bucket_id = 'covers' AND
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
 
-create policy "Users can update own profile."
-on public.profiles for update
-using ( auth.uid() = id );
+CREATE POLICY "Permitir que administradores autenticados atualizem capas" ON storage.objects FOR UPDATE USING (
+    bucket_id = 'covers' AND
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
 
-create policy "Contents are viewable by authenticated users."
-on public.contents for select
-to authenticated
-using ( true );
-
-create policy "Admins can insert content."
-on public.contents for insert
-to authenticated
-with check ( (select role from profiles where id = auth.uid()) = 'admin' );
-
-create policy "Admins can update content."
-on public.contents for update
-to authenticated
-using ( (select role from profiles where id = auth.uid()) = 'admin' );
-
-create policy "Admins can delete content."
-on public.contents for delete
-to authenticated
-using ( (select role from profiles where id = auth.uid()) = 'admin' );
-
--- 5. Create Storage bucket and policies
-insert into storage.buckets (id, name, public)
-values ('covers', 'covers', true);
-
-create policy "Allow authenticated users to view covers"
-on storage.objects for select
-to authenticated
-using ( bucket_id = 'covers' );
-
-create policy "Allow authenticated users to upload covers into their own folder"
-on storage.objects for insert
-to authenticated
-with check ( bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text );
-
-create policy "Allow authenticated users to update their own covers"
-on storage.objects for update
-to authenticated
-using ( auth.uid() = owner )
-with check ( bucket_id = 'covers' );
-
-create policy "Allow authenticated users to delete their own covers"
-on storage.objects for delete
-to authenticated
-using ( auth.uid() = owner );
+CREATE POLICY "Permitir que administradores autenticados deletem capas" ON storage.objects FOR DELETE USING (
+    bucket_id = 'covers' AND
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+);
