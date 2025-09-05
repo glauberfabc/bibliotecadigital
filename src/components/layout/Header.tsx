@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Book, Library, LogOut, Mic, User as UserIcon } from 'lucide-react';
+import { Library, LogOut, User as UserIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { type User } from '@supabase/supabase-js';
 import { type Profile } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 const Logo = () => (
     <Link href="/" className="flex items-center gap-2">
@@ -25,10 +27,41 @@ const Logo = () => (
     </Link>
 );
 
-
-export default function Header({ user, profile }: { user: User | null, profile: Profile | null }) {
+export default function Header() {
   const router = useRouter();
   const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single();
+        setProfile(userProfile);
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        fetchUser();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase, supabase.auth]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -52,7 +85,12 @@ export default function Header({ user, profile }: { user: User | null, profile: 
         </nav>
 
         <div className="flex items-center gap-4">
-          {user ? (
+          {loading ? (
+             <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-10 w-24" />
+             </div>
+          ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
