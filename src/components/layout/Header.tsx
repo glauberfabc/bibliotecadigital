@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Library, LogOut, User as UserIcon, Shield } from 'lucide-react';
+import { Library, LogOut, User as UserIcon, Shield, Youtube } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +47,7 @@ export default function Header({ user, profile }: HeaderProps) {
           <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">Início</Link>
           <Link href="/?type=book" className="transition-colors hover:text-foreground/80 text-foreground/60">Livros</Link>
           <Link href="/?type=audiobook" className="transition-colors hover:text-foreground/80 text-foreground/60">Audiolivros</Link>
+          <Link href="/aulas" className="transition-colors hover:text-foreground/80 text-foreground/60">Vídeo Aulas</Link>
           {isAdmin && (
             <Link href="/admin" className="font-semibold text-primary transition-colors hover:text-primary/80">Painel Admin</Link>
           )}

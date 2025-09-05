@@ -13,3 +13,10 @@ export interface Profile {
   email: string;
   role: 'admin' | 'user';
 }
+
+export interface VideoLesson {
+  id: string;
+  title: string;
+  youtube_url: string;
+  created_at: string;
+}

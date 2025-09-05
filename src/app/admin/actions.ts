@@ -113,3 +113,63 @@ export async function deleteContentAction(id: string, cover_url: string) {
     revalidatePath('/');
     return { success: true };
 }
+
+// Video Lesson Actions
+const videoLessonSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(2, 'O título é obrigatório.'),
+  youtube_url: z.string().url('A URL do YouTube deve ser válida.'),
+});
+
+export async function upsertVideoLessonAction(formData: z.infer<typeof videoLessonSchema>) {
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'admin') return { success: false, error: 'Forbidden' };
+
+  const validatedFields = videoLessonSchema.safeParse(formData);
+  if (!validatedFields.success) {
+    return { success: false, error: 'Campos inválidos.' };
+  }
+  
+  const { id, ...lessonData } = validatedFields.data;
+  
+  const query = id 
+    ? supabase.from('video_lessons').update(lessonData).eq('id', id)
+    : supabase.from('video_lessons').insert(lessonData);
+
+  const { error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/admin');
+  revalidatePath('/aulas');
+  return { success: true };
+}
+
+export async function deleteVideoLessonAction(id: string) {
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'admin') return { success: false, error: 'Forbidden' };
+  
+  const { error } = await supabase.from('video_lessons').delete().eq('id', id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/admin');
+  revalidatePath('/aulas');
+  return { success: true };
+}
