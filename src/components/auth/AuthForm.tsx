@@ -54,8 +54,8 @@ export default function AuthForm({ type }: AuthFormProps) {
           variant: 'destructive',
         });
       } else {
-        router.push('/');
-        router.refresh();
+        // Force a hard redirect to ensure middleware picks up the session
+        window.location.href = '/';
       }
     } else {
       const { error } = await supabase.auth.signUp(values);
