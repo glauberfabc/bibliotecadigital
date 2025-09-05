@@ -22,43 +22,45 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+    const fetchSessionAndProfile = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
+      const currentUser = currentSession?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+        setProfile(userProfile as Profile);
+      } else {
+        setProfile(null);
+      }
       setLoading(false);
     };
 
-    getSession();
+    fetchSessionAndProfile();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      async (event, newSession) => {
+        setSession(newSession);
+        const newUser = newSession?.user ?? null;
+        setUser(newUser);
+
+        if (newUser) {
+          setLoading(true);
+          const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', newUser.id).single();
+          setProfile(userProfile as Profile);
+          setLoading(false);
+        } else {
+          setProfile(null);
+        }
       }
     );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, [supabase, supabase.auth]);
   
-  useEffect(() => {
-    const getProfile = async () => {
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(data as Profile);
-      } else {
-        setProfile(null);
-      }
-    };
-    getProfile();
-  }, [user, supabase]);
-
-
   const value = {
     session,
     user,
