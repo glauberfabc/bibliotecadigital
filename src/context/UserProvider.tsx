@@ -27,9 +27,28 @@ export function UserProvider({ children, user: initialUser, profile: initialProf
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(initialUser);
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
-  const [loading, setLoading] = useState(initialUser === null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+        setProfile(userProfile as Profile);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    };
+
+    fetchSession();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const currentUser = session?.user ?? null;
@@ -48,16 +67,11 @@ export function UserProvider({ children, user: initialUser, profile: initialProf
         setLoading(false);
       }
     );
-    
-    // If there was no initial user, we might be waiting for the client-side auth check
-    if (!initialUser) {
-        setLoading(false);
-    }
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase, initialUser]);
+  }, [supabase]);
 
   const value = {
     user,

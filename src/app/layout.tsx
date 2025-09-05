@@ -3,10 +3,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
-import { UserProvider } from '@/context/UserProvider';
-import { createServerClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
-import type { Profile } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'Biblioteca Digital',
@@ -18,16 +14,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = user
-    ? await supabase.from('profiles').select('*').eq('id', user.id).single()
-    : { data: null };
-
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
@@ -37,13 +23,11 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('font-body antialiased')}>
-        <UserProvider user={user} profile={profile as Profile}>
-          <div className="flex min-h-screen w-full flex-col">
-            <Header />
-            {children}
-            <Toaster />
-          </div>
-        </UserProvider>
+        <div className="flex min-h-screen w-full flex-col">
+          <Header />
+          {children}
+          <Toaster />
+        </div>
       </body>
     </html>
   );
