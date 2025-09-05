@@ -1,117 +1,95 @@
--- Cria o tipo ENUM para a função do usuário
-CREATE TYPE public.user_role AS ENUM ('user', 'admin');
-
--- Cria a tabela de perfis
-CREATE TABLE public.profiles (
-    id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email character varying,
-    role public.user_role DEFAULT 'user'::public.user_role
+-- 1. Create profiles table
+create table public.profiles (
+  id uuid not null references auth.users on delete cascade,
+  email text,
+  role text default 'user',
+  primary key (id)
 );
+alter table public.profiles enable row level security;
 
--- Habilita a Segurança em Nível de Linha (RLS) para perfis
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- 2. Create contents table
+create table public.contents (
+    id uuid default gen_random_uuid() primary key,
+    title text not null,
+    theme text not null,
+    cover_url text not null,
+    type text not null check (type in ('book', 'audiobook')),
+    download_url text not null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+alter table public.contents enable row level security;
 
--- Política: Usuários podem ver seus próprios perfis
-CREATE POLICY "Public profiles are viewable by users."
-    ON public.profiles FOR SELECT
-    USING ( auth.uid() = id );
-
--- Política: Usuários podem atualizar seus próprios perfis
-CREATE POLICY "Users can update their own profile."
-    ON public.profiles FOR UPDATE
-    USING ( auth.uid() = id );
-    
--- Função para criar um perfil para um novo usuário
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email)
-  VALUES (new.id, new.email);
-  RETURN new;
-END;
+-- 3. Set up trigger for new users
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email);
+  return new;
+end;
 $$;
 
--- Gatilho para executar a função quando um novo usuário é criado
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 
+-- 4. Set up RLS policies
+create policy "Public profiles are viewable by everyone."
+on public.profiles for select
+using ( true );
 
--- Cria o tipo ENUM para o tipo de conteúdo
-CREATE TYPE public.content_type AS ENUM ('book', 'audiobook');
+create policy "Users can insert their own profile."
+on public.profiles for insert
+with check ( auth.uid() = id );
 
--- Cria a tabela de conteúdos
-CREATE TABLE public.contents (
-    id uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    title character varying NOT NULL,
-    theme character varying NOT NULL,
-    type public.content_type NOT NULL,
-    cover_url character varying NOT NULL,
-    download_url character varying NOT NULL
-);
+create policy "Users can update own profile."
+on public.profiles for update
+using ( auth.uid() = id );
 
--- Habilita a Segurança em Nível de Linha (RLS) para conteúdos
-ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
+create policy "Contents are viewable by authenticated users."
+on public.contents for select
+to authenticated
+using ( true );
 
--- Política: Usuários autenticados podem ver todos os conteúdos
-CREATE POLICY "Authenticated users can view contents."
-    ON public.contents FOR SELECT
-    USING ( auth.role() = 'authenticated' );
+create policy "Admins can insert content."
+on public.contents for insert
+to authenticated
+with check ( (select role from profiles where id = auth.uid()) = 'admin' );
 
--- Função auxiliar para verificar se o usuário é admin
-CREATE OR REPLACE FUNCTION is_admin()
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE
-  user_role public.user_role;
-BEGIN
-  SELECT role INTO user_role FROM public.profiles WHERE id = auth.uid();
-  RETURN user_role = 'admin';
-END;
-$$;
+create policy "Admins can update content."
+on public.contents for update
+to authenticated
+using ( (select role from profiles where id = auth.uid()) = 'admin' );
 
--- Política: Apenas administradores podem inserir conteúdos
-CREATE POLICY "Admins can insert contents."
-    ON public.contents FOR INSERT
-    WITH CHECK ( is_admin() );
+create policy "Admins can delete content."
+on public.contents for delete
+to authenticated
+using ( (select role from profiles where id = auth.uid()) = 'admin' );
 
--- Política: Apenas administradores podem atualizar conteúdos
-CREATE POLICY "Admins can update contents."
-    ON public.contents FOR UPDATE
-    USING ( is_admin() );
+-- 5. Create Storage bucket and policies
+insert into storage.buckets (id, name, public)
+values ('covers', 'covers', true);
 
--- Política: Apenas administradores podem deletar conteúdos
-CREATE POLICY "Admins can delete contents."
-    ON public.contents FOR DELETE
-    USING ( is_admin() );
+create policy "Allow authenticated users to view covers"
+on storage.objects for select
+to authenticated
+using ( bucket_id = 'covers' );
 
+create policy "Allow authenticated users to upload covers into their own folder"
+on storage.objects for insert
+to authenticated
+with check ( bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text );
 
--- Configuração do Storage para as capas
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('covers', 'covers', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']);
+create policy "Allow authenticated users to update their own covers"
+on storage.objects for update
+to authenticated
+using ( auth.uid() = owner )
+with check ( bucket_id = 'covers' );
 
--- Política: Permitir visualização pública das capas
-CREATE POLICY "Cover images are publicly accessible."
-    ON storage.objects FOR SELECT
-    USING ( bucket_id = 'covers' );
-
--- Política: Apenas administradores podem enviar capas
-CREATE POLICY "Admins can upload cover images."
-    ON storage.objects FOR INSERT
-    WITH CHECK ( bucket_id = 'covers' AND is_admin() );
-
--- Política: Apenas administradores podem atualizar capas
-CREATE POLICY "Admins can update cover images."
-    ON storage.objects FOR UPDATE
-    USING ( bucket_id = 'covers' AND is_admin() );
-
--- Política: Apenas administradores podem deletar capas
-CREATE POLICY "Admins can delete cover images."
-    ON storage.objects FOR DELETE
-    USING ( bucket_id = 'covers' AND is_admin() );
+create policy "Allow authenticated users to delete their own covers"
+on storage.objects for delete
+to authenticated
+using ( auth.uid() = owner );
