@@ -55,7 +55,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Esta chamada é essencial para atualizar a sessão
   await supabase.auth.getUser()
 
-  return response
+  return { supabase, response };
 }
