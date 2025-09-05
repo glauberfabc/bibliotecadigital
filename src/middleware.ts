@@ -1,9 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { updateSession } from '@/lib/supabase/middleware';
 import { createServerClient } from '@/lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
-  const { response, supabase } = await createSupabaseClient(request);
+  // This approach of creating a new response and supabase client is for the middleware.
+  // The updateSession function from supabase/middleware is not used here to allow for
+  // more granular control over the response lifecycle and redirection logic.
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(request.cookies);
 
   const {
     data: { user },
@@ -34,13 +42,6 @@ export async function middleware(request: NextRequest) {
 
   return response;
 }
-
-async function createSupabaseClient(request: NextRequest) {
-  let response = NextResponse.next({ request });
-  const supabase = createServerClient(request.cookies);
-  return { supabase, response };
-}
-
 
 export const config = {
   matcher: [
