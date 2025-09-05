@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Library, LogOut, User as UserIcon } from 'lucide-react';
+import { Library, LogOut, User as UserIcon, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,7 @@ export default function Header() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      setLoading(true);
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
 
@@ -46,6 +47,8 @@ export default function Header() {
           .eq('id', currentUser.id)
           .single();
         setProfile(userProfile);
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     };
@@ -53,9 +56,7 @@ export default function Header() {
     fetchUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         fetchUser();
-      }
     });
 
     return () => {
@@ -101,7 +102,14 @@ export default function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {isAdmin && <DropdownMenuItem asChild><Link href="/admin">Painel Admin</Link></DropdownMenuItem>}
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Painel Admin</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sair</span>
