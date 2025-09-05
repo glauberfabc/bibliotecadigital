@@ -12,8 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Skeleton } from '../ui/skeleton';
-import { useUser } from '@/context/UserProvider';
+import type { User } from '@supabase/supabase-js';
+import type { Profile } from '@/lib/types';
 
 const Logo = () => (
     <Link href="/" className="flex items-center gap-2">
@@ -24,10 +24,14 @@ const Logo = () => (
     </Link>
 );
 
-export default function Header() {
-  const supabase = createClient();
-  const { user, profile, loading } = useUser();
+type HeaderProps = {
+  user: User | null;
+  profile: Profile | null;
+};
 
+export default function Header({ user, profile }: HeaderProps) {
+  const supabase = createClient();
+  
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';
@@ -49,12 +53,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          {loading ? (
-             <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-10 w-10 rounded-full" />
-             </div>
-          ) : user ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">

@@ -3,7 +3,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
-import { UserProvider } from '@/context/UserProvider';
 import { createServerClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import type { Profile } from '@/lib/types';
@@ -38,13 +37,11 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('font-body antialiased')}>
-        <UserProvider user={user} profile={profile as Profile}>
-          <div className="flex min-h-screen w-full flex-col">
-            <Header />
-            {children}
-            <Toaster />
-          </div>
-        </UserProvider>
+        <div className="flex min-h-screen w-full flex-col">
+          <Header user={user} profile={profile as Profile | null} />
+          {children}
+          <Toaster />
+        </div>
       </body>
     </html>
   );
