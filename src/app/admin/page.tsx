@@ -3,10 +3,19 @@ import { cookies } from 'next/headers';
 import ContentDataTable from '@/components/admin/ContentDataTable';
 import { columns } from '@/components/admin/columns';
 import { type Content } from '@/lib/types';
+import { redirect } from 'next/navigation';
 
 export default async function AdminDashboard() {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect('/login');
+  }
 
   const { data, error } = await supabase
     .from('contents')
