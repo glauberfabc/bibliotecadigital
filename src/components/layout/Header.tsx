@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Book, Library, LogOut, Mic, User as UserIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/context/UserProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,11 +29,11 @@ const Logo = () => (
 export default function Header({ user, profile }: { user: User | null, profile: Profile | null }) {
   const router = useRouter();
   const supabase = createClient();
-  const { loading } = useUser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+    router.refresh();
   };
 
   const isAdmin = profile?.role === 'admin';
@@ -53,7 +52,7 @@ export default function Header({ user, profile }: { user: User | null, profile: 
         </nav>
 
         <div className="flex items-center gap-4">
-          {loading ? null : user ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
