@@ -2,67 +2,64 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import type { Profile } from '@/lib/types';
 
 type UserContextType = {
   user: User | null;
-  session: Session | null;
   profile: Profile | null;
   loading: boolean;
 };
 
-const UserContext = createContext<UserContextType | null>(null);
+const UserContext = createContext<UserContextType>({
+  user: null,
+  profile: null,
+  loading: true,
+});
 
-export function UserProvider({ children }: { children: ReactNode }) {
+type UserProviderProps = {
+  children: ReactNode;
+  user: User | null;
+  profile: Profile | null;
+};
+
+export function UserProvider({ children, user: initialUser, profile: initialProfile }: UserProviderProps) {
   const supabase = createClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [profile, setProfile] = useState<Profile | null>(initialProfile);
+  const [loading, setLoading] = useState(initialUser === null);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      setSession(currentSession);
-      const currentUser = currentSession?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-        setProfile(userProfile as Profile);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    };
-
-    fetchSessionAndProfile();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        setSession(newSession);
-        const newUser = newSession?.user ?? null;
-        setUser(newUser);
+      async (event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
 
-        if (newUser) {
-          setLoading(true);
-          const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', newUser.id).single();
+        if (currentUser) {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
           setProfile(userProfile as Profile);
-          setLoading(false);
         } else {
           setProfile(null);
         }
+        setLoading(false);
       }
     );
+    
+    // If there was no initial user, we might be waiting for the client-side auth check
+    if (!initialUser) {
+        setLoading(false);
+    }
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase, supabase.auth]);
-  
+  }, [supabase, initialUser]);
+
   const value = {
-    session,
     user,
     profile,
     loading,

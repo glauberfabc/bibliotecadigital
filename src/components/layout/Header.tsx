@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Library, LogOut, User as UserIcon, Shield } from 'lucide-react';
@@ -14,9 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { type User } from '@supabase/supabase-js';
-import { type Profile } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { useUser } from '@/context/UserProvider';
 
 const Logo = () => (
     <Link href="/" className="flex items-center gap-2">
@@ -30,39 +28,7 @@ const Logo = () => (
 export default function Header() {
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .single();
-        setProfile(userProfile);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
-    };
-
-    fetchUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        fetchUser();
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase, supabase.auth]);
+  const { user, profile, loading } = useUser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -89,7 +55,7 @@ export default function Header() {
           {loading ? (
              <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-10 rounded-full" />
              </div>
           ) : user ? (
             <DropdownMenu>
