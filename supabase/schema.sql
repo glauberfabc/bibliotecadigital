@@ -1,79 +1,129 @@
--- Profiles table
-create table public.profiles (
-  id uuid not null references auth.users on delete cascade,
-  email text,
-  role text default 'user' check (role in ('user', 'admin')),
-  primary key (id)
+-- Create a table for public profiles
+CREATE TABLE public.profiles (
+  id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  email TEXT,
+  role TEXT DEFAULT 'user',
+  PRIMARY KEY (id)
 );
-alter table public.profiles enable row level security; -- Activate RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Contents table
-create table public.contents (
-  id uuid not null primary key default gen_random_uuid(),
-  title text not null,
-  theme text not null,
-  cover_url text not null,
-  type text not null check (type in ('book', 'audiobook')),
-  download_url text not null,
-  created_at timestamp with time zone not null default now()
+-- Create a table for contents
+CREATE TABLE public.contents (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    theme TEXT NOT NULL,
+    cover_url TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('book', 'audiobook')),
+    download_url TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-alter table public.contents enable row level security; -- Activate RLS
+ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
 
--- Storage bucket for covers
-insert into storage.buckets (id, name, public)
-values ('covers', 'covers', true);
+-- Set up Storage!
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('covers', 'covers', true);
 
--- Policies for storage
-create policy "Allow public read access on covers" on storage.objects
-  for select using (bucket_id = 'covers');
+CREATE POLICY "Cover images are publicly accessible." ON storage.objects
+AS PERMISSIVE FOR SELECT
+TO public
+USING (bucket_id = 'covers');
 
-create policy "Allow authenticated users to upload covers" on storage.objects
-  for insert with check (bucket_id = 'covers' and auth.role() = 'authenticated');
+CREATE POLICY "Anyone can upload a cover." ON storage.objects
+AS PERMISSIVE FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'covers');
 
-create policy "Allow admin to update covers" on storage.objects
-  for update using (bucket_id = 'covers' and (select role from public.profiles where id = auth.uid()) = 'admin');
+CREATE POLICY "Anyone can update their own cover." ON storage.objects
+AS PERMISSIVE FOR UPDATE
+TO public
+USING (auth.uid() = owner);
 
-create policy "Allow admin to delete covers" on storage.objects
-  for delete using (bucket_id = 'covers' and (select role from public.profiles where id = auth.uid()) = 'admin');
+CREATE POLICY "Anyone can delete their own cover." ON storage.objects
+AS PERMISSIVE FOR DELETE
+TO public
+USING (auth.uid() = owner);
 
--- Function to handle new user sign-ups
-create function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email)
-  values (new.id, new.email);
-  return new;
-end;
+-- Custom Claims
+CREATE OR REPLACE FUNCTION public.custom_user_claims()
+RETURNS jsonb
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    jsonb_build_object(
+      'claims', jsonb_agg(
+        jsonb_build_object(
+          'role', role
+        )
+      )
+    )
+  FROM public.profiles
+  WHERE id = auth.uid()
 $$;
 
--- Trigger to call the function when a new user is created
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
+-- Function to check if a user is an admin
+CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
+RETURNS boolean AS $$
+DECLARE
+  user_role TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN FALSE;
+  END IF;
 
--- Grant usage on schema to postgres user
-grant usage on schema public to postgres;
-grant usage on schema auth to postgres;
+  SELECT role INTO user_role FROM public.profiles WHERE id = user_id;
+  RETURN user_role = 'admin';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant select on auth.users to postgres user
-grant select on table auth.users to postgres;
+
+-- Set up Realtime!
+BEGIN;
+  DROP PUBLICATION IF EXISTS supabase_realtime;
+  CREATE PUBLICATION supabase_realtime;
+COMMIT;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.contents;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+
+-- Function to create a new profile for a new user
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES (new.id, new.email, 'user');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to call handle_new_user on new user sign up
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant usage on the DDL schema to the postgres user
+GRANT USAGE ON SCHEMA ddl TO postgres;
+GRANT USAGE ON SCHEMA auth TO postgres;
+GRANT SELECT ON ALL TABLES IN SCHEMA auth TO postgres;
 
 -- Policies for profiles table
-create policy "Users can read their own profile" on public.profiles
-  for select using (auth.uid() = id);
+CREATE POLICY "Allow authenticated users to read their own profile" ON public.profiles
+AS PERMISSIVE FOR SELECT
+TO authenticated
+USING (auth.uid() = id);
+
+CREATE POLICY "Allow admin users to have full access to all profiles" ON public.profiles
+AS PERMISSIVE FOR ALL
+TO public
+USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin')
+WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
 
 -- Policies for contents table
-create policy "Enable read access for all users" on public.contents
-  for select using (true);
+CREATE POLICY "Allow public read access to all contents" ON public.contents
+AS PERMISSIVE FOR SELECT
+TO public
+USING (true);
 
-create policy "Allow admin to insert content" on public.contents
-  for insert with check ((select role from public.profiles where id = auth.uid()) = 'admin');
-
-create policy "Allow admin to update content" on public.contents
-  for update using ((select role from public.profiles where id = auth.uid()) = 'admin');
-
-create policy "Allow admin to delete content" on public.contents
-  for delete using ((select role from public.profiles where id = auth.uid()) = 'admin');
+CREATE POLICY "Allow admin full access to contents" ON public.contents
+AS PERMISSIVE FOR ALL
+TO public
+USING ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin')
+WITH CHECK ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
