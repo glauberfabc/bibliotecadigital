@@ -27,16 +27,17 @@ export function UserProvider({ children, user: initialUser, profile: initialProf
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(initialUser);
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
-  const [loading, setLoading] = useState(false); // Start with false as initial data is provided
+  // O carregamento é verdadeiro até que a primeira verificação seja concluída.
+  const [loading, setLoading] = useState(initialUser === null);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setLoading(true);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
         if (currentUser) {
-          // If the user exists but the profile is not loaded or doesn't match, fetch it.
           if (!profile || profile.id !== currentUser.id) {
             const { data: userProfile } = await supabase
               .from('profiles')
@@ -51,16 +52,22 @@ export function UserProvider({ children, user: initialUser, profile: initialProf
         setLoading(false);
       }
     );
+    
+    // Garante que o estado de carregamento termine após a configuração inicial do listener.
+    if(initialUser) {
+        setLoading(false);
+    }
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [profile, supabase]); // Depend on profile to refetch if it's missing
+  }, [profile, supabase, initialUser]);
 
   const value = {
     user,
     profile,
-    loading: loading || (user !== null && profile === null), // Loading is true if user is logged in but profile is still being fetched
+    // Loading é verdadeiro se o usuário não foi carregado OU se o usuário existe, mas o perfil ainda não.
+    loading: loading || (user != null && profile === null),
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
