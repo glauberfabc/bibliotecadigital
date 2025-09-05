@@ -1,23 +1,18 @@
---
--- Tabela de Perfis de Usuário
--- Armazena informações públicas sobre os usuários.
---
-CREATE TABLE public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email VARCHAR(255),
-  role TEXT DEFAULT 'user' NOT NULL
+-- Create a table for public profiles
+CREATE TABLE profiles (
+  id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  email TEXT,
+  role TEXT DEFAULT 'user',
+  PRIMARY KEY (id)
 );
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Políticas de Segurança para a Tabela de Perfis
-CREATE POLICY "Os usuários podem ver todos os perfis" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Os usuários podem inserir seu próprio perfil" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Os usuários podem atualizar seu próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+-- Create policies for profiles
+CREATE POLICY "Public profiles are viewable by everyone." ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can insert their own profile." ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile." ON profiles FOR UPDATE USING (auth.uid() = id);
 
---
--- Função e Gatilho para Sincronização de Usuários
--- Cria um perfil para um novo usuário automaticamente.
---
+-- Set up a trigger to automatically create a profile when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -27,59 +22,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER on_auth_user_created
+CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
---
--- Tabela de Conteúdos
--- Armazena os livros e audiolivros.
---
-CREATE TABLE public.contents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  theme TEXT NOT NULL,
-  cover_url TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('book', 'audiobook')),
-  download_url TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- Create a table for contents (books, audiobooks)
+CREATE TABLE contents (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    theme TEXT NOT NULL,
+    cover_url TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('book', 'audiobook')),
+    download_url TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-ALTER TABLE public.contents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contents ENABLE ROW LEVEL SECURITY;
 
--- Políticas de Segurança para a Tabela de Conteúdos
-CREATE POLICY "Permitir acesso de leitura a todos" ON public.contents FOR SELECT USING (true);
-CREATE POLICY "Permitir inserção para administradores" ON public.contents FOR INSERT WITH CHECK (
-  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+-- Create policies for contents
+CREATE POLICY "Allow public read access to contents" ON contents FOR SELECT USING (true);
+CREATE POLICY "Allow admin users to insert content" ON contents FOR INSERT WITH CHECK (
+  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
 );
-CREATE POLICY "Permitir atualização para administradores" ON public.contents FOR UPDATE USING (
-  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+CREATE POLICY "Allow admin users to update content" ON contents FOR UPDATE USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
 );
-CREATE POLICY "Permitir exclusão para administradores" ON public.contents FOR DELETE USING (
-  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+CREATE POLICY "Allow admin users to delete content" ON contents FOR DELETE USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
 );
 
---
--- Configuração do Supabase Storage para Capas
---
--- Cria o bucket 'covers' se ele não existir
+
+-- Set up Storage
+-- 1. Create a bucket for covers
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('covers', 'covers', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Políticas de Segurança para o Bucket 'covers'
-CREATE POLICY "Permitir que usuários autenticados vejam todas as capas" ON storage.objects FOR SELECT USING (bucket_id = 'covers');
+-- 2. Set up policies for the covers bucket
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "Allow authenticated users to view covers" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to upload covers" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to update their own covers" ON storage.objects;
+DROP POLICY IF EXISTS "Allow authenticated users to delete their own covers" ON storage.objects;
 
-CREATE POLICY "Permitir que administradores autenticados façam upload de capas" ON storage.objects FOR INSERT WITH CHECK (
-    bucket_id = 'covers' AND
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+-- Create a single, comprehensive policy for all actions
+CREATE POLICY "Allow users to manage their own files in covers bucket"
+ON storage.objects FOR ALL
+TO authenticated
+USING (
+  bucket_id = 'covers' AND
+  (storage.folder(name))[1] = auth.uid()::text
+)
+WITH CHECK (
+  bucket_id = 'covers' AND
+  (storage.folder(name))[1] = auth.uid()::text
 );
 
-CREATE POLICY "Permitir que administradores autenticados atualizem capas" ON storage.objects FOR UPDATE USING (
-    bucket_id = 'covers' AND
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
-
-CREATE POLICY "Permitir que administradores autenticados deletem capas" ON storage.objects FOR DELETE USING (
-    bucket_id = 'covers' AND
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
+-- Allow public read access to all files in the covers bucket
+CREATE POLICY "Allow public read access to covers"
+ON storage.objects FOR SELECT
+USING ( bucket_id = 'covers' );
