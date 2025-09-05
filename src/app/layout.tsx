@@ -1,19 +1,36 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { UserProvider } from '@/context/UserProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { createServerClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import Header from '@/components/layout/Header';
 
 export const metadata: Metadata = {
   title: 'Biblioteca Digital',
   description: 'Sua coleção pessoal de livros e audiolivros.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const { data: profile } = session?.user
+    ? await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+    : { data: null };
+  
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
@@ -23,10 +40,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('font-body antialiased')}>
-        <UserProvider>
+        <div className="flex min-h-screen w-full flex-col">
+          <Header user={session?.user ?? null} profile={profile ?? null} />
           {children}
           <Toaster />
-        </UserProvider>
+        </div>
       </body>
     </html>
   );
