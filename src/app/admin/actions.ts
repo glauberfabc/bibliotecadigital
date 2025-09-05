@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import slugify from 'slugify';
 
 const contentSchema = z.object({
   id: z.string().optional(),
@@ -44,7 +45,8 @@ export async function upsertContentAction(formData: FormData) {
         }
     }
     
-    const filePath = `${user.id}/${uuidv4()}-${coverImage.name}`;
+    const sanitizedFileName = slugify(coverImage.name, { lower: true, strict: true });
+    const filePath = `${user.id}/${uuidv4()}-${sanitizedFileName}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('covers')
       .upload(filePath, coverImage);
