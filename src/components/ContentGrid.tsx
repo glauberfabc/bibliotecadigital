@@ -41,31 +41,31 @@ function ContentGridInternal({ initialContents }: { initialContents: Content[] }
     <div>
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Input
-          placeholder="Search by title..."
+          placeholder="Buscar por título..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="md:col-span-1"
         />
         <Select value={genreFilter} onValueChange={setGenreFilter}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter by genre" />
+            <SelectValue placeholder="Filtrar por gênero" />
           </SelectTrigger>
           <SelectContent>
             {genres.map((genre) => (
               <SelectItem key={genre} value={genre} className="capitalize">
-                {genre}
+                {genre === 'all' ? 'Todos os Gêneros' : genre}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter by type" />
+            <SelectValue placeholder="Filtrar por tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="book">Book</SelectItem>
-            <SelectItem value="audiobook">Audiobook</SelectItem>
+            <SelectItem value="all">Todos os Tipos</SelectItem>
+            <SelectItem value="book">Livro</SelectItem>
+            <SelectItem value="audiobook">Audiolivro</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -80,9 +80,9 @@ function ContentGridInternal({ initialContents }: { initialContents: Content[] }
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-12 text-center">
-          <h3 className="text-xl font-semibold tracking-tight">No content found</h3>
+          <h3 className="text-xl font-semibold tracking-tight">Nenhum conteúdo encontrado</h3>
           <p className="text-sm text-muted-foreground">
-            Try adjusting your search or filters.
+            Tente ajustar sua busca ou filtros.
           </p>
         </div>
       )}
@@ -92,7 +92,7 @@ function ContentGridInternal({ initialContents }: { initialContents: Content[] }
 
 export default function ContentGrid({ initialContents }: { initialContents: Content[] }) {
   return (
-    <Suspense fallback={<div>Loading filters...</div>}>
+    <Suspense fallback={<div>Carregando filtros...</div>}>
       <ContentGridInternal initialContents={initialContents} />
     </Suspense>
   )

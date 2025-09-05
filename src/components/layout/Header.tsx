@@ -21,7 +21,7 @@ const Logo = () => (
     <Link href="/" className="flex items-center gap-2">
         <Library className="h-6 w-6 text-primary" />
         <span className="hidden font-headline text-xl font-semibold sm:inline-block">
-            Digital Library
+            Biblioteca Digital
         </span>
     </Link>
 );
@@ -44,11 +44,11 @@ export default function Header({ user, profile }: { user: User | null, profile: 
       <div className="container flex h-16 items-center justify-between">
         <Logo />
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">Home</Link>
-          <Link href="/?type=book" className="transition-colors hover:text-foreground/80 text-foreground/60">Books</Link>
-          <Link href="/?type=audiobook" className="transition-colors hover:text-foreground/80 text-foreground/60">Audiobooks</Link>
+          <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">Início</Link>
+          <Link href="/?type=book" className="transition-colors hover:text-foreground/80 text-foreground/60">Livros</Link>
+          <Link href="/?type=audiobook" className="transition-colors hover:text-foreground/80 text-foreground/60">Audiolivros</Link>
           {isAdmin && (
-            <Link href="/admin" className="font-semibold text-primary transition-colors hover:text-primary/80">Admin Dashboard</Link>
+            <Link href="/admin" className="font-semibold text-primary transition-colors hover:text-primary/80">Painel Admin</Link>
           )}
         </nav>
 
@@ -58,26 +58,26 @@ export default function Header({ user, profile }: { user: User | null, profile: 
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <UserIcon className="h-5 w-5" />
-                  <span className="sr-only">Toggle user menu</span>
+                  <span className="sr-only">Abrir menu do usuário</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {isAdmin && <DropdownMenuItem asChild><Link href="/admin">Admin Dashboard</Link></DropdownMenuItem>}
+                {isAdmin && <DropdownMenuItem asChild><Link href="/admin">Painel Admin</Link></DropdownMenuItem>}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Logout</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2">
               <Button variant="ghost" asChild>
-                <Link href="/login">Login</Link>
+                <Link href="/login">Entrar</Link>
               </Button>
               <Button asChild>
-                <Link href="/signup">Sign Up</Link>
+                <Link href="/signup">Cadastrar</Link>
               </Button>
             </div>
           )}

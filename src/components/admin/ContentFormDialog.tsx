@@ -35,13 +35,13 @@ import { Loader2 } from 'lucide-react';
 import { upsertContentAction } from '@/app/admin/actions';
 
 const formSchema = z.object({
-  title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
-  theme: z.string().min(1, { message: 'Please select a theme.' }),
+  title: z.string().min(2, { message: 'O título deve ter pelo menos 2 caracteres.' }),
+  theme: z.string().min(1, { message: 'Por favor, selecione um tema.' }),
   type: z.enum(['book', 'audiobook']),
-  download_url: z.string().url({ message: 'Please enter a valid URL.' }),
+  download_url: z.string().url({ message: 'Por favor, insira uma URL válida.' }),
 });
 
-const themes = ['Health', 'Business', 'Romance', 'Sci-Fi', 'Fantasy', 'Self-Help', 'Biography'];
+const themes = ['Saúde', 'Negócios', 'Romance', 'Ficção Científica', 'Fantasia', 'Autoajuda', 'Biografia'];
 
 type ContentFormDialogProps = {
   isOpen: boolean;
@@ -97,7 +97,7 @@ export default function ContentFormDialog({
     setIsLoading(true);
 
     if (!coverFile && !initialData) {
-      toast({ title: 'Error', description: 'Please select a cover image.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Por favor, selecione uma imagem de capa.', variant: 'destructive' });
       setIsLoading(false);
       return;
     }
@@ -119,13 +119,13 @@ export default function ContentFormDialog({
 
     if (result.success) {
       toast({
-        title: 'Success!',
-        description: `Content has been ${initialData ? 'updated' : 'created'}.`,
+        title: 'Sucesso!',
+        description: `Conteúdo ${initialData ? 'atualizado' : 'criado'}.`,
       });
       setIsOpen(false);
     } else {
       toast({
-        title: 'Error',
+        title: 'Erro',
         description: result.error,
         variant: 'destructive',
       });
@@ -138,26 +138,26 @@ export default function ContentFormDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline">{initialData ? 'Edit Content' : 'Add New Content'}</DialogTitle>
+          <DialogTitle className="font-headline">{initialData ? 'Editar Conteúdo' : 'Adicionar Novo Conteúdo'}</DialogTitle>
           <DialogDescription>
-            {initialData ? 'Update the details of the content.' : 'Fill in the form to add a new item to the library.'}
+            {initialData ? 'Atualize os detalhes do conteúdo.' : 'Preencha o formulário para adicionar um novo item à biblioteca.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField control={form.control} name="title" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl><Input placeholder="The Great Gatsby" {...field} /></FormControl>
+                  <FormLabel>Título</FormLabel>
+                  <FormControl><Input placeholder="O Grande Gatsby" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormField control={form.control} name="theme" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Theme</FormLabel>
+                  <FormLabel>Tema</FormLabel>
                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a theme" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um tema" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {themes.map(theme => <SelectItem key={theme} value={theme}>{theme}</SelectItem>)}
                     </SelectContent>
@@ -168,12 +168,12 @@ export default function ContentFormDialog({
             />
              <FormField control={form.control} name="type" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>Tipo</FormLabel>
                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um tipo" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="book">Book</SelectItem>
-                      <SelectItem value="audiobook">Audiobook</SelectItem>
+                      <SelectItem value="book">Livro</SelectItem>
+                      <SelectItem value="audiobook">Audiolivro</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -182,22 +182,22 @@ export default function ContentFormDialog({
             />
             <FormField control={form.control} name="download_url" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Download URL</FormLabel>
-                  <FormControl><Input placeholder="https://example.com/download" {...field} /></FormControl>
+                  <FormLabel>URL de Download</FormLabel>
+                  <FormControl><Input placeholder="https://exemplo.com/download" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormItem>
-              <FormLabel>Cover Image</FormLabel>
+              <FormLabel>Imagem de Capa</FormLabel>
               <FormControl><Input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] || null)} /></FormControl>
               <FormMessage />
             </FormItem>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={isLoading}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={isLoading}>Cancelar</Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {initialData ? 'Save Changes' : 'Create'}
+                {initialData ? 'Salvar Alterações' : 'Criar'}
               </Button>
             </DialogFooter>
           </form>

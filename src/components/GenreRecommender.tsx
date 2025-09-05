@@ -25,7 +25,7 @@ export default function GenreRecommender({ currentGenres, onGenreSelect }: Genre
         const result = await recommendGenres({ currentGenres });
         setRecommendations(result.recommendedGenres);
       } catch (e) {
-        setError('Could not fetch recommendations. Please try again.');
+        setError('Não foi possível buscar recomendações. Por favor, tente novamente.');
         console.error(e);
       }
     });
@@ -37,12 +37,12 @@ export default function GenreRecommender({ currentGenres, onGenreSelect }: Genre
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-headline text-xl">
             <Wand2 className="h-5 w-5 text-accent" />
-            Need a suggestion?
+            Precisa de uma sugestão?
           </CardTitle>
           <CardDescription>
             {currentGenres.length > 0
-              ? `Based on your interest in ${currentGenres.join(', ')}, let our AI recommend some other genres you might like.`
-              : 'Let our AI recommend some genres for you to explore.'}
+              ? `Com base no seu interesse em ${currentGenres.join(', ')}, deixe nossa IA recomendar outros gêneros que você pode gostar.`
+              : 'Deixe nossa IA recomendar alguns gêneros para você explorar.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,12 +52,12 @@ export default function GenreRecommender({ currentGenres, onGenreSelect }: Genre
             ) : (
               <Wand2 className="mr-2 h-4 w-4" />
             )}
-            Get Recommendations
+            Obter Recomendações
           </Button>
 
           {isPending && (
             <div className="mt-4 text-sm text-muted-foreground">
-              Thinking...
+              Pensando...
             </div>
           )}
 
@@ -65,7 +65,7 @@ export default function GenreRecommender({ currentGenres, onGenreSelect }: Genre
           
           {recommendations.length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-sm font-medium">How about these?</p>
+              <p className="mb-2 text-sm font-medium">Que tal estes?</p>
               <div className="flex flex-wrap gap-2">
                 {recommendations.map((genre) => (
                   <Badge

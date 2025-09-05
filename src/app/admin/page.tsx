@@ -37,7 +37,7 @@ export default async function AdminDashboard() {
         <div className="container mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="font-headline text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Content Management
+              Gerenciamento de Conteúdo
             </h1>
           </div>
           <ContentDataTable columns={columns} data={contents} />

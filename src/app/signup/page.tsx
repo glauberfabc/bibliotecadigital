@@ -14,9 +14,9 @@ export default function SignupPage() {
       <div className="mx-auto w-full max-w-sm">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+            <CardTitle className="font-headline text-2xl">Crie uma Conta</CardTitle>
             <CardDescription>
-              Join our community and start your reading journey.
+              Junte-se à nossa comunidade e comece sua jornada de leitura.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -24,9 +24,9 @@ export default function SignupPage() {
           </CardContent>
         </Card>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          Já tem uma conta?{" "}
           <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
-            Login
+            Entrar
           </Link>
         </p>
       </div>

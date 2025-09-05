@@ -21,8 +21,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Endereço de e-mail inválido.' }),
+  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
 });
 
 type AuthFormProps = {
@@ -49,7 +49,7 @@ export default function AuthForm({ type }: AuthFormProps) {
       const { error } = await supabase.auth.signInWithPassword(values);
       if (error) {
         toast({
-          title: 'Login Error',
+          title: 'Erro no Login',
           description: error.message,
           variant: 'destructive',
         });
@@ -61,14 +61,14 @@ export default function AuthForm({ type }: AuthFormProps) {
       const { error } = await supabase.auth.signUp(values);
       if (error) {
         toast({
-          title: 'Signup Error',
+          title: 'Erro no Cadastro',
           description: error.message,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Success!',
-          description: 'Please check your email to confirm your account.',
+          title: 'Sucesso!',
+          description: 'Por favor, verifique seu e-mail para confirmar sua conta.',
         });
         router.push('/login');
       }
@@ -86,7 +86,7 @@ export default function AuthForm({ type }: AuthFormProps) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" {...field} />
+                <Input placeholder="voce@exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -97,7 +97,7 @@ export default function AuthForm({ type }: AuthFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Senha</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
@@ -107,7 +107,7 @@ export default function AuthForm({ type }: AuthFormProps) {
         />
         <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {type === 'login' ? 'Login' : 'Sign Up'}
+          {type === 'login' ? 'Entrar' : 'Cadastrar'}
         </Button>
       </form>
     </Form>

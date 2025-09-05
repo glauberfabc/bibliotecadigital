@@ -17,12 +17,12 @@ const ActionCell = ({ content }: { content: Content }) => {
   const { toast } = useToast();
 
   const handleDelete = async () => {
-    if (confirm(`Are you sure you want to delete "${content.title}"?`)) {
+    if (confirm(`Você tem certeza que quer deletar "${content.title}"?`)) {
       const result = await deleteContentAction(content.id, content.cover_url);
       if (result.success) {
-        toast({ title: 'Success', description: 'Content deleted successfully.' });
+        toast({ title: 'Sucesso', description: 'Conteúdo deletado com sucesso.' });
       } else {
-        toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        toast({ title: 'Erro', description: result.error, variant: 'destructive' });
       }
     }
   };
@@ -32,18 +32,18 @@ const ActionCell = ({ content }: { content: Content }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">Abrir menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>Ações</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-            Edit
+            Editar
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-            Delete
+            Deletar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -59,14 +59,14 @@ const ActionCell = ({ content }: { content: Content }) => {
 export const columns: ColumnDef<Content>[] = [
   {
     accessorKey: 'cover_url',
-    header: 'Cover',
+    header: 'Capa',
     cell: ({ row }) => {
       const url = row.getValue('cover_url') as string;
       const title = row.original.title;
       return (
         <Image
           src={url}
-          alt={`Cover of ${title}`}
+          alt={`Capa de ${title}`}
           width={40}
           height={60}
           className="rounded-sm object-cover"
@@ -77,23 +77,23 @@ export const columns: ColumnDef<Content>[] = [
   },
   {
     accessorKey: 'title',
-    header: 'Title',
+    header: 'Título',
   },
   {
     accessorKey: 'theme',
-    header: 'Theme',
+    header: 'Tema',
     cell: ({ row }) => <span className="capitalize">{row.getValue('theme')}</span>,
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: 'Tipo',
     cell: ({ row }) => (
-      <Badge variant="outline" className="capitalize">{row.getValue('type')}</Badge>
+      <Badge variant="outline" className="capitalize">{row.getValue('type') === 'book' ? 'Livro' : 'Audiolivro'}</Badge>
     ),
   },
   {
     accessorKey: 'created_at',
-    header: 'Created At',
+    header: 'Criado em',
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at'));
       return <span>{date.toLocaleDateString()}</span>;

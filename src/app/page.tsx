@@ -33,7 +33,7 @@ export default async function Home() {
       <main className="flex-1 px-4 py-8 md:px-6 lg:px-8">
         <div className="container mx-auto">
           <h1 className="mb-6 font-headline text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Your Digital Library
+            Sua Biblioteca Digital
           </h1>
           <ContentGrid initialContents={(contents as Content[]) ?? []} />
         </div>

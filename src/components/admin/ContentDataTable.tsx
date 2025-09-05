@@ -58,7 +58,7 @@ export default function ContentDataTable<TData, TValue>({
     <div>
       <div className="flex items-center justify-between py-4">
         <Input
-          placeholder="Filter by title..."
+          placeholder="Filtrar por título..."
           value={(table.getColumn('title')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
             table.getColumn('title')?.setFilterValue(event.target.value)
@@ -67,7 +67,7 @@ export default function ContentDataTable<TData, TValue>({
         />
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Content
+          Adicionar Novo Conteúdo
         </Button>
       </div>
       <div className="rounded-md border">
@@ -113,7 +113,7 @@ export default function ContentDataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  Nenhum resultado.
                 </TableCell>
               </TableRow>
             )}
@@ -127,7 +127,7 @@ export default function ContentDataTable<TData, TValue>({
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          Anterior
         </Button>
         <Button
           variant="outline"
@@ -135,7 +135,7 @@ export default function ContentDataTable<TData, TValue>({
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          Próximo
         </Button>
       </div>
       <ContentFormDialog

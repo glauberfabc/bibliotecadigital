@@ -14,9 +14,9 @@ export default function LoginPage() {
       <div className="mx-auto w-full max-w-sm">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="font-headline text-2xl">Bem-vindo de Volta</CardTitle>
             <CardDescription>
-              Enter your credentials to access your library.
+              Digite suas credenciais para acessar sua biblioteca.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -24,9 +24,9 @@ export default function LoginPage() {
           </CardContent>
         </Card>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          Não tem uma conta?{" "}
           <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
-            Sign up
+            Cadastre-se
           </Link>
         </p>
       </div>

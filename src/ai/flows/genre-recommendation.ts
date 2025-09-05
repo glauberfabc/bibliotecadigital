@@ -14,14 +14,14 @@ import {z} from 'genkit';
 const RecommendGenresInputSchema = z.object({
   currentGenres: z
     .array(z.string())
-    .describe('The list of currently selected genres.'),
+    .describe('A lista de gêneros selecionados atualmente.'),
 });
 export type RecommendGenresInput = z.infer<typeof RecommendGenresInputSchema>;
 
 const RecommendGenresOutputSchema = z.object({
   recommendedGenres: z
     .array(z.string())
-    .describe('The list of recommended genres.'),
+    .describe('A lista de gêneros recomendados.'),
 });
 export type RecommendGenresOutput = z.infer<typeof RecommendGenresOutputSchema>;
 
@@ -35,12 +35,12 @@ const prompt = ai.definePrompt({
   name: 'recommendGenresPrompt',
   input: {schema: RecommendGenresInputSchema},
   output: {schema: RecommendGenresOutputSchema},
-  prompt: `Based on the currently selected genres: {{currentGenres}},
-  recommend other genres that the user might be interested in.  Only include genres related to books and audio books.
-  Return a JSON array of strings representing the recommended genres.
-  Do not include any of the currently selected genres in the returned array.
-  Do not include any explanation text, only the JSON array.
-  Example: ["Mystery", "Thriller", "Science Fiction"]`,
+  prompt: `Com base nos gêneros selecionados atualmente: {{currentGenres}},
+  recomende outros gêneros que o usuário possa se interessar. Inclua apenas gêneros relacionados a livros e audiolivros.
+  Retorne um array JSON de strings representando os gêneros recomendados.
+  Não inclua nenhum dos gêneros selecionados atualmente no array retornado.
+  Não inclua nenhum texto explicativo, apenas o array JSON.
+  Exemplo: ["Mistério", "Suspense", "Ficção Científica"]`,
 });
 
 const recommendGenresFlow = ai.defineFlow(
