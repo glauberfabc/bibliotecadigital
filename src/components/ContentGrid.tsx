@@ -12,7 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import GenreRecommender from './GenreRecommender';
+import { useUser } from '@/hooks/use-user';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Sparkles, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 function ContentGridInternal({ initialContents }: { initialContents: Content[] }) {
   const searchParams = useSearchParams();
@@ -22,6 +26,7 @@ function ContentGridInternal({ initialContents }: { initialContents: Content[] }
   const [searchTerm, setSearchTerm] = useState('');
   const [genreFilter, setGenreFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState(initialTypeFilter || 'all');
+  const { profile } = useUser();
 
   const genres = useMemo(() => {
     const allGenres = new Set(contents.map((c) => c.theme));
@@ -70,7 +75,38 @@ function ContentGridInternal({ initialContents }: { initialContents: Content[] }
         </Select>
       </div>
       
-      <GenreRecommender currentGenres={genreFilter === 'all' ? [] : [genreFilter]} onGenreSelect={setGenreFilter}/>
+      {profile?.role === 'demo' && (
+        <div className="my-6">
+            <Card className="border-2 border-accent bg-accent/10">
+                <CardHeader className="items-center text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                    <Sparkles className="h-6 w-6" />
+                </div>
+                <CardTitle className="font-headline text-2xl text-accent-foreground pt-2">
+                    Oferta de Acesso Vitalício
+                </CardTitle>
+                <CardDescription className="text-foreground/80">
+                    Desbloqueie downloads e vídeos ilimitados para sempre.
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                <p className="mb-4 text-sm text-muted-foreground">
+                    Somente hoje, aproveite nossa oferta exclusiva:
+                </p>
+                <div className="mb-6">
+                    <span className="text-4xl font-bold text-accent-foreground">R$37,90</span>
+                    <span className="ml-2 text-lg text-muted-foreground line-through">R$97,00</span>
+                </div>
+                <Button asChild size="lg" className="w-full max-w-sm bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg">
+                    <Link href="https://flownetic-digital.mycartpanda.com/checkout/195590000:1">
+                    Garantir Acesso Vitalício Agora
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+                </CardContent>
+            </Card>
+        </div>
+      )}
 
       {filteredContents.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
