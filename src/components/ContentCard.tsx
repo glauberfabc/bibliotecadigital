@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -46,12 +47,7 @@ export default function ContentCard({ content }: { content: Content }) {
             <Badge variant="secondary" className="capitalize">{content.type === 'book' ? 'Livro' : 'Audiolivro'}</Badge>
             <Badge variant="outline" className="capitalize">{content.theme}</Badge>
           </div>
-          <DialogTitle className="font-headline text-2xl pt-2">{content.title}</DialogTitle>
-          <DialogDescription>
-            {isDemo
-              ? 'Esta é uma conta de demonstração. O download não está disponível.'
-              : 'Faça o download do conteúdo para aproveitá-lo offline.'}
-          </DialogDescription>
+          <DialogTitle className="font-headline pt-2 text-2xl">{content.title}</DialogTitle>
         </DialogHeader>
         <div className="py-4">
           <div className="relative mx-auto w-48 overflow-hidden rounded-md shadow-lg">
@@ -66,20 +62,26 @@ export default function ContentCard({ content }: { content: Content }) {
           </div>
         </div>
         {isDemo ? (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Função de Demonstração</AlertTitle>
-            <AlertDescription>
-              O download está desabilitado para este tipo de conta.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <a href={content.download_url} target="_blank" rel="noopener noreferrer">
-            <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+          <>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Função de Demonstração</AlertTitle>
+              <AlertDescription>
+                O download está desabilitado para este tipo de conta.
+              </AlertDescription>
+            </Alert>
+            <Button className="w-full" disabled>
               <Download className="mr-2 h-4 w-4" />
               Baixar
             </Button>
-          </a>
+          </>
+        ) : (
+          <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            <a href={content.download_url} target="_blank" rel="noopener noreferrer">
+              <Download className="mr-2 h-4 w-4" />
+              Baixar
+            </a>
+          </Button>
         )}
       </DialogContent>
     </Dialog>
