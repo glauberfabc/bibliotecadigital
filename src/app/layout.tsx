@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import { createServerClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import type { Profile } from '@/lib/types';
+import { UserProvider } from '@/hooks/use-user';
 
 export const metadata: Metadata = {
   title: 'Biblioteca Digital',
@@ -37,11 +38,13 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Belleza&display=swap" rel="stylesheet" />
       </head>
       <body className={cn('font-body antialiased')}>
-        <div className="flex min-h-screen w-full flex-col">
-          <Header user={user} profile={profile as Profile | null} />
-          {children}
-          <Toaster />
-        </div>
+        <UserProvider profile={profile as Profile | null}>
+          <div className="flex min-h-screen w-full flex-col">
+            <Header user={user} profile={profile as Profile | null} />
+            {children}
+            <Toaster />
+          </div>
+        </UserProvider>
       </body>
     </html>
   );

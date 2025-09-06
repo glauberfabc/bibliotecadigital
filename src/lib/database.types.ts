@@ -43,17 +43,17 @@ export type Database = {
         Row: {
           email: string | null
           id: string
-          role: "user" | "admin"
+          role: "user" | "admin" | "demo"
         }
         Insert: {
           email?: string | null
           id: string
-          role?: "user" | "admin"
+          role?: "user" | "admin" | "demo"
         }
         Update: {
           email?: string | null
           id?: string
-          role?: "user" | "admin"
+          role?: "user" | "admin" | "demo"
         }
         Relationships: [
           {

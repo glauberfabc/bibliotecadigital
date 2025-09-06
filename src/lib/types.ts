@@ -11,7 +11,7 @@ export interface Content {
 export interface Profile {
   id: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'demo';
 }
 
 export interface VideoLesson {

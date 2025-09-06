@@ -1,8 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { type VideoLesson } from '@/lib/types';
+import { type VideoLesson, type Profile } from '@/lib/types';
+import { Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-function YouTubeEmbed({ url }: { url: string }) {
+function YouTubeEmbed({ url, isDemo }: { url: string, isDemo: boolean }) {
   const getYouTubeVideoId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -14,9 +16,9 @@ function YouTubeEmbed({ url }: { url: string }) {
   if (!videoId) {
     return <p className="text-destructive">URL do YouTube inválida.</p>;
   }
-
+  
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-lg shadow-lg">
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg shadow-lg">
       <iframe
         width="100%"
         height="100%"
@@ -25,7 +27,19 @@ function YouTubeEmbed({ url }: { url: string }) {
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
+        className={isDemo ? 'pointer-events-none' : ''}
       ></iframe>
+      {isDemo && (
+         <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+            <Alert className="max-w-md">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Função de Demonstração</AlertTitle>
+                <AlertDescription>
+                A visualização de vídeos está desabilitada para este tipo de conta.
+                </AlertDescription>
+            </Alert>
+         </div>
+      )}
     </div>
   );
 }
@@ -33,6 +47,14 @@ function YouTubeEmbed({ url }: { url: string }) {
 export default async function VideoLessonsPage() {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('*').eq('id', user.id).single()
+    : { data: null };
+  
+  const isDemo = (profile as Profile | null)?.role === 'demo';
 
   const { data: lessons, error } = await supabase
     .from('video_lessons')
@@ -53,7 +75,7 @@ export default async function VideoLessonsPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {lessons.map((lesson: VideoLesson) => (
               <div key={lesson.id}>
-                <YouTubeEmbed url={lesson.youtube_url} />
+                <YouTubeEmbed url={lesson.youtube_url} isDemo={isDemo} />
                 <h2 className="mt-3 text-lg font-semibold">{lesson.title}</h2>
               </div>
             ))}

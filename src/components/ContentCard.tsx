@@ -11,10 +11,15 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from './ui/button';
-import { Download, BookOpen, Headphones } from 'lucide-react';
+import { Download, BookOpen, Headphones, Info } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { useUser } from '@/hooks/use-user';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 export default function ContentCard({ content }: { content: Content }) {
+  const { profile } = useUser();
+  const isDemo = profile?.role === 'demo';
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -43,7 +48,9 @@ export default function ContentCard({ content }: { content: Content }) {
           </div>
           <DialogTitle className="font-headline text-2xl pt-2">{content.title}</DialogTitle>
           <DialogDescription>
-            Faça o download do conteúdo para aproveitá-lo offline.
+            {isDemo
+              ? 'Esta é uma conta de demonstração. O download não está disponível.'
+              : 'Faça o download do conteúdo para aproveitá-lo offline.'}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -58,12 +65,22 @@ export default function ContentCard({ content }: { content: Content }) {
             />
           </div>
         </div>
-        <a href={content.download_url} target="_blank" rel="noopener noreferrer">
-          <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-            <Download className="mr-2 h-4 w-4" />
-            Baixar
-          </Button>
-        </a>
+        {isDemo ? (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Função de Demonstração</AlertTitle>
+            <AlertDescription>
+              O download está desabilitado para este tipo de conta.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <a href={content.download_url} target="_blank" rel="noopener noreferrer">
+            <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              <Download className="mr-2 h-4 w-4" />
+              Baixar
+            </Button>
+          </a>
+        )}
       </DialogContent>
     </Dialog>
   );
