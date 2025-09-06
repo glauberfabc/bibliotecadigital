@@ -43,17 +43,17 @@ export type Database = {
         Row: {
           email: string | null
           id: string
-          role: "user" | "admin" | "demo"
+          role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
           email?: string | null
           id: string
-          role?: "user" | "admin" | "demo"
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
           email?: string | null
           id?: string
-          role?: "user" | "admin" | "demo"
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: [
           {
@@ -91,10 +91,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      handle_new_user: {
+        Args: Record<PropertyKey, never>
+        Returns: Record<PropertyKey, never>
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "user" | "demo"
     }
     CompositeTypes: {
       [_ in never]: never
