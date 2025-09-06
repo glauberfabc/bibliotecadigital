@@ -23,12 +23,6 @@ export default function LoginPage() {
             <AuthForm type="login" />
           </CardContent>
         </Card>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Não tem uma conta?{" "}
-          <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
-            Cadastre-se
-          </Link>
-        </p>
       </div>
     </div>
   );

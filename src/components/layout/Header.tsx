@@ -84,9 +84,6 @@ export default function Header({ user, profile }: HeaderProps) {
               <Button variant="ghost" asChild>
                 <Link href="/login">Entrar</Link>
               </Button>
-              <Button asChild>
-                <Link href="/signup">Cadastrar</Link>
-              </Button>
             </div>
           )}
         </div>
